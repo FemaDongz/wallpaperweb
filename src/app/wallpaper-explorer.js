@@ -283,26 +283,55 @@ export default function WallpaperExplorer({ filters, wallpapers }) {
         targetHeight,
       );
 
-      canvas.toBlob((upscaledBlob) => {
-        if (!upscaledBlob) {
-          setIsDownloading(false);
-          return;
-        }
+      const exportBlob = await new Promise((resolve) => {
+        canvas.toBlob(resolve, "image/jpeg", 0.95);
+      });
 
-        const downloadUrl = URL.createObjectURL(upscaledBlob);
+      if (!exportBlob) {
+        throw new Error("Wallpaper export failed");
+      }
+
+      const fileName = `${selectedWallpaper.title.toLowerCase().replace(/\s+/g, "-")}-${downloadMode}.jpg`;
+      const exportFile = new File([exportBlob], fileName, { type: "image/jpeg" });
+      setDownloadProgress(88);
+
+      if (navigator.canShare?.({ files: [exportFile] })) {
+        try {
+          await navigator.share({
+            files: [exportFile],
+            title: selectedWallpaper.title,
+            text: "Save this Minecraft wallpaper.",
+          });
+        } catch {
+          const downloadUrl = URL.createObjectURL(exportBlob);
+          window.open(downloadUrl, "_blank", "noopener,noreferrer");
+
+          setTimeout(() => {
+            URL.revokeObjectURL(downloadUrl);
+          }, 30000);
+        }
+      } else {
+        const downloadUrl = URL.createObjectURL(exportBlob);
         const link = document.createElement("a");
         link.href = downloadUrl;
-        link.download = `${selectedWallpaper.title.toLowerCase().replace(/\s+/g, "-")}-${downloadMode}.png`;
+        link.download = fileName;
+        link.rel = "noopener";
+        document.body.appendChild(link);
         link.click();
-        URL.revokeObjectURL(downloadUrl);
-        setDownloadProgress(100);
+        link.remove();
 
         setTimeout(() => {
-          setIsDownloading(false);
-          setSelectedWallpaper(null);
-          setDownloadProgress(0);
-        }, 500);
-      }, "image/jpeg", 0.95);
+          URL.revokeObjectURL(downloadUrl);
+        }, 30000);
+      }
+
+      setDownloadProgress(100);
+
+      setTimeout(() => {
+        setIsDownloading(false);
+        setSelectedWallpaper(null);
+        setDownloadProgress(0);
+      }, 500);
     } catch {
       setIsDownloading(false);
       setDownloadProgress(0);
