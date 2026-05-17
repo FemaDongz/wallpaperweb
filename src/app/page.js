@@ -63,7 +63,9 @@ async function getWallpapersByFolder(folder) {
             file.type === "file" && /\.(png|jpe?g|webp|gif)$/i.test(file.name),
         )
         .map((file) => {
-          const image = `${githubImageBase}/${folder}/${encodeURIComponent(file.name)}`;
+          const image =
+            file.download_url ||
+            `${githubImageBase}/${folder}/${encodeURIComponent(file.name)}`;
 
           return {
             id: `${folder}-${file.name}`,

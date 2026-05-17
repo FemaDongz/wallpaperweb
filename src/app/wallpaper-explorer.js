@@ -242,15 +242,12 @@ export default function WallpaperExplorer({ filters, wallpapers }) {
 
     try {
       const response = await fetch(selectedWallpaper.image);
-      const blob = await response.blob();
-      const sourceImageUrl = URL.createObjectURL(blob);
-      const sourceImage = new window.Image();
-      sourceImage.crossOrigin = "anonymous";
-      sourceImage.src = sourceImageUrl;
-      await sourceImage.decode();
+      if (!response.ok) {
+        throw new Error("Wallpaper image download failed");
+      }
 
-      const imageBitmap = await createImageBitmap(sourceImage);
-      URL.revokeObjectURL(sourceImageUrl);
+      const blob = await response.blob();
+      const imageBitmap = await createImageBitmap(blob);
       setDownloadProgress(38);
 
       const scale = 1;
