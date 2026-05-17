@@ -1,0 +1,193 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-bungee);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-bungee), Arial, Helvetica, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  text-decoration: none;
+}
+
+button {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+img {
+  content-visibility: auto;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background-image: linear-gradient(
+    110deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(255, 255, 255, 0.14) 18%,
+    rgba(255, 255, 255, 0.06) 36%
+  );
+  background-size: 220% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.scroll-glass {
+  position: fixed;
+  left: 4px;
+  right: 4px;
+  z-index: 30;
+  height: 128px;
+  pointer-events: none;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.scroll-glass::before,
+.scroll-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.scroll-glass::before {
+  z-index: 2;
+  background: transparent;
+}
+
+.scroll-glass::after {
+  z-index: 1;
+  backdrop-filter: blur(28px) saturate(135%);
+  -webkit-backdrop-filter: blur(28px) saturate(135%);
+  background: rgba(0, 0, 0, 0.01);
+  mask-image: linear-gradient(
+    to bottom,
+    black 0%,
+    black 18%,
+    rgba(0, 0, 0, 0.82) 38%,
+    rgba(0, 0, 0, 0.46) 66%,
+    rgba(0, 0, 0, 0.12) 88%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black 0%,
+    black 18%,
+    rgba(0, 0, 0, 0.82) 38%,
+    rgba(0, 0, 0, 0.46) 66%,
+    rgba(0, 0, 0, 0.12) 88%,
+    transparent 100%
+  );
+}
+
+.scroll-glass-top {
+  top: 0;
+  border-top-left-radius: 1rem;
+  border-top-right-radius: 1rem;
+}
+
+.scroll-glass-bottom {
+  bottom: 0;
+  border-bottom-left-radius: 1rem;
+  border-bottom-right-radius: 1rem;
+}
+
+.scroll-glass-bottom::before {
+  background: transparent;
+}
+
+.scroll-glass-bottom::after {
+  mask-image: linear-gradient(
+    to top,
+    black 0%,
+    black 18%,
+    rgba(0, 0, 0, 0.82) 38%,
+    rgba(0, 0, 0, 0.46) 66%,
+    rgba(0, 0, 0, 0.12) 88%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to top,
+    black 0%,
+    black 18%,
+    rgba(0, 0, 0, 0.82) 38%,
+    rgba(0, 0, 0, 0.46) 66%,
+    rgba(0, 0, 0, 0.12) 88%,
+    transparent 100%
+  );
+}
+
+@media (min-width: 640px) {
+  .scroll-glass {
+    left: 6px;
+    right: 6px;
+    height: 144px;
+  }
+
+  .scroll-glass-top {
+    border-top-left-radius: 1.25rem;
+    border-top-right-radius: 1.25rem;
+  }
+
+  .scroll-glass-bottom {
+    border-bottom-left-radius: 1.25rem;
+    border-bottom-right-radius: 1.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .scroll-glass {
+    left: 8px;
+    right: 8px;
+    height: 156px;
+  }
+
+  .scroll-glass-top {
+    border-top-left-radius: 1.5rem;
+    border-top-right-radius: 1.5rem;
+  }
+
+  .scroll-glass-bottom {
+    border-bottom-left-radius: 1.5rem;
+    border-bottom-right-radius: 1.5rem;
+  }
+}
+
+button,
+a,
+input {
+  transition: none;
+}
+
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration {
+  display: none;
+  -webkit-appearance: none;
+}
