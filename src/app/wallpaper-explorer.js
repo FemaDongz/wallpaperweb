@@ -821,8 +821,19 @@ export default function WallpaperExplorer({ filters, wallpapers }) {
                   ))}
                 </div>
 
-                <div className="mt-4 rounded-[1rem] bg-black/25 p-4 text-[10px] leading-5 text-white/45">
-                  Optimized export with smooth browser rendering. Best for Minecraft homescreen, lockscreen, and desktop background.
+                <div className="relative mt-4 rounded-[1rem] border border-red-400/25 bg-red-500/15 p-4 pr-14 text-[10px] leading-5 text-red-200">
+                  If you opened this page inside TikTok, copy this link and open it in Chrome, Safari, or your default browser before downloading.
+                  <button
+                    className="absolute bottom-3 right-3 flex size-9 items-center justify-center rounded-full bg-red-500 text-white shadow-lg shadow-red-950/30 transition hover:bg-red-400"
+                    onClick={copyCurrentLink}
+                    type="button"
+                    aria-label="Copy page link"
+                  >
+                    <svg aria-hidden="true" className="size-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
+                      <rect height="14" rx="2" ry="2" width="14" x="8" y="8" />
+                      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                    </svg>
+                  </button>
                 </div>
 
                 {isDownloading && (
