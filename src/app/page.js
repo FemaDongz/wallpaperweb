@@ -7,11 +7,10 @@ const githubRepo = "Wallpapers";
 const githubBranch = "main";
 const githubImageBase =
   "https://raw.githubusercontent.com/FemaDongz/Wallpapers/main/Image";
-const jsDelivrFileListUrl =
-  "https://data.jsdelivr.com/v1/package/gh/FemaDongz/Wallpapers@main/flat";
 
-function createPreviewImageUrl(imageUrl) {
-  return `https://wsrv.nl/?url=${encodeURIComponent(imageUrl)}&w=1280&h=720&fit=cover&output=webp&q=78`;
+function createPreviewImageUrl(imageUrl, version) {
+  const versionedImageUrl = version ? `${imageUrl}?v=${version}` : imageUrl;
+  return `https://wsrv.nl/?url=${encodeURIComponent(versionedImageUrl)}&w=1280&h=720&fit=cover&output=webp&q=78`;
 }
 
 const filters = ["All", "Morning", "Midday", "Afternoon", "Evening"];
@@ -72,110 +71,29 @@ async function getWallpapersByFolder(folder) {
             filter: folder,
             fileName: file.name,
             image,
-            previewImage: createPreviewImageUrl(image),
+            previewImage: createPreviewImageUrl(image, file.sha),
             ...createWallpaperStats(file.name, folder),
           };
         }),
     ).slice(0, imagesPerFolder);
 
-    if (wallpapers.length === 0) {
-      throw new Error(`No images found for ${folder}`);
-    }
-
     return wallpapers;
   } catch {
-    return [1, 2].map((index) => ({
-      id: `${folder}-fallback-${index}`,
-      title: `${folder} ${index}`,
-      filter: folder,
-      fileName: `${folder.toLowerCase()}${index}.jpeg`,
-      image: `${githubImageBase}/${folder}/${folder.toLowerCase()}${index}.jpeg`,
-      views: 0,
-      downloads: 0,
-    }));
+    return [];
   }
-}
-
-function createFallbackWallpapers(folder) {
-  const fallbackFiles = [
-    `${folder.toLowerCase()}1.jpeg`,
-    `${folder.toLowerCase()}2.jpeg`,
-  ];
-
-  if (folder === "Midday") {
-    fallbackFiles.unshift("AncinetCrsytal.jpeg", "AncientCrystal.jpeg");
-  }
-
-  return fallbackFiles.map((fileName) => {
-    const image = `${githubImageBase}/${folder}/${encodeURIComponent(fileName)}`;
-
-    return {
-      id: `${folder}-fallback-${fileName}`,
-      title: createWallpaperTitle(fileName),
-      filter: folder,
-      fileName,
-      image,
-      previewImage: createPreviewImageUrl(image),
-      views: 0,
-      downloads: 0,
-    };
-  });
-}
-
-async function getWallpapersFromJsDelivr() {
-  const response = await fetch(jsDelivrFileListUrl, { cache: "no-store" });
-
-  if (!response.ok) {
-    throw new Error("jsDelivr file list failed");
-  }
-
-  const data = await response.json();
-
-  if (!Array.isArray(data.files)) {
-    throw new Error("jsDelivr file list invalid");
-  }
-
-  const wallpapers = data.files
-    .filter((file) => /\/Image\/[^/]+\/[^/]+\.(png|jpe?g|webp|gif)$/i.test(file.name))
-    .map((file) => {
-      const [, , folder, fileName] = file.name.split("/");
-
-      const image = `${githubImageBase}/${folder}/${encodeURIComponent(fileName)}`;
-
-      return {
-        id: `${folder}-${fileName}`,
-        title: createWallpaperTitle(fileName),
-        filter: folder,
-        fileName,
-        image,
-        previewImage: createPreviewImageUrl(image),
-        ...createWallpaperStats(fileName, folder),
-      };
-    })
-    .filter((wallpaper) => weatherFolders.includes(wallpaper.filter));
-
-  if (wallpapers.length === 0) {
-    throw new Error("No jsDelivr wallpapers found");
-  }
-
-  return shuffleItems(wallpapers);
 }
 
 async function getRandomWallpapers() {
-  try {
-    return await getWallpapersFromJsDelivr();
-  } catch {
-    const groupedWallpapers = await Promise.all(
-      weatherFolders.map((folder) => getWallpapersByFolder(folder)),
-    );
-    const wallpapers = shuffleItems(groupedWallpapers.flat());
+  const groupedWallpapers = await Promise.all(
+    weatherFolders.map((folder) => getWallpapersByFolder(folder)),
+  );
+  const wallpapers = shuffleItems(groupedWallpapers.flat());
 
-    if (wallpapers.length > 0) {
-      return wallpapers;
-    }
-
-    return shuffleItems(weatherFolders.flatMap((folder) => createFallbackWallpapers(folder)));
+  if (wallpapers.length > 0) {
+    return wallpapers;
   }
+
+  return [];
 }
 
 export default async function Home() {
