@@ -42,6 +42,18 @@ function subscribeFavorites(callback) {
   };
 }
 
+function isTikTokInAppBrowser() {
+  if (typeof navigator === "undefined") {
+    return false;
+  }
+
+  return /tiktok|musical_ly|bytedance|aweme/i.test(navigator.userAgent);
+}
+
+function subscribeInAppBrowser() {
+  return () => {};
+}
+
 function getInitialDownloadMode() {
   if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
     return "mobile";
@@ -64,6 +76,11 @@ function getModeConfig(mode) {
 
 export default function WallpaperExplorer({ filters, wallpapers }) {
   const headerRef = useRef(null);
+  const isTikTokBrowser = useSyncExternalStore(
+    subscribeInAppBrowser,
+    isTikTokInAppBrowser,
+    () => false,
+  );
   const [activeFilter, setActiveFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -232,6 +249,29 @@ export default function WallpaperExplorer({ filters, wallpapers }) {
     updateCropX(Math.round(nextCropX));
   }
 
+  function getExternalBrowserUrl() {
+    if (typeof window === "undefined") {
+      return "#";
+    }
+
+    const currentUrl = window.location.href;
+
+    if (/android/i.test(navigator.userAgent)) {
+      const externalUrl = currentUrl.replace(/^https?:\/\//, "");
+      return `intent://${externalUrl}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(currentUrl)};end`;
+    }
+
+    return currentUrl;
+  }
+
+  async function copyCurrentLink() {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    await navigator.clipboard?.writeText(window.location.href);
+  }
+
   async function downloadUpscaledWallpaper() {
     if (!selectedWallpaper || isDownloading) {
       return;
@@ -283,55 +323,26 @@ export default function WallpaperExplorer({ filters, wallpapers }) {
         targetHeight,
       );
 
-      const exportBlob = await new Promise((resolve) => {
-        canvas.toBlob(resolve, "image/jpeg", 0.95);
-      });
-
-      if (!exportBlob) {
-        throw new Error("Wallpaper export failed");
-      }
-
-      const fileName = `${selectedWallpaper.title.toLowerCase().replace(/\s+/g, "-")}-${downloadMode}.jpg`;
-      const exportFile = new File([exportBlob], fileName, { type: "image/jpeg" });
-      setDownloadProgress(88);
-
-      if (navigator.canShare?.({ files: [exportFile] })) {
-        try {
-          await navigator.share({
-            files: [exportFile],
-            title: selectedWallpaper.title,
-            text: "Save this Minecraft wallpaper.",
-          });
-        } catch {
-          const downloadUrl = URL.createObjectURL(exportBlob);
-          window.open(downloadUrl, "_blank", "noopener,noreferrer");
-
-          setTimeout(() => {
-            URL.revokeObjectURL(downloadUrl);
-          }, 30000);
+      canvas.toBlob((upscaledBlob) => {
+        if (!upscaledBlob) {
+          setIsDownloading(false);
+          return;
         }
-      } else {
-        const downloadUrl = URL.createObjectURL(exportBlob);
+
+        const downloadUrl = URL.createObjectURL(upscaledBlob);
         const link = document.createElement("a");
         link.href = downloadUrl;
-        link.download = fileName;
-        link.rel = "noopener";
-        document.body.appendChild(link);
+        link.download = `${selectedWallpaper.title.toLowerCase().replace(/\s+/g, "-")}-${downloadMode}.png`;
         link.click();
-        link.remove();
+        URL.revokeObjectURL(downloadUrl);
+        setDownloadProgress(100);
 
         setTimeout(() => {
-          URL.revokeObjectURL(downloadUrl);
-        }, 30000);
-      }
-
-      setDownloadProgress(100);
-
-      setTimeout(() => {
-        setIsDownloading(false);
-        setSelectedWallpaper(null);
-        setDownloadProgress(0);
-      }, 500);
+          setIsDownloading(false);
+          setSelectedWallpaper(null);
+          setDownloadProgress(0);
+        }, 500);
+      }, "image/jpeg", 0.95);
     } catch {
       setIsDownloading(false);
       setDownloadProgress(0);
@@ -342,6 +353,23 @@ export default function WallpaperExplorer({ filters, wallpapers }) {
     <>
       <div className="scroll-glass scroll-glass-top" />
       <div className="scroll-glass scroll-glass-bottom" />
+
+      {isTikTokBrowser && (
+        <div className="fixed inset-x-3 top-3 z-[60] rounded-[1rem] border border-yellow-300/30 bg-yellow-400 p-4 text-black shadow-2xl shadow-black/30 sm:left-auto sm:right-4 sm:max-w-sm">
+          <p className="text-xs font-black">Open in your browser for downloads</p>
+          <p className="mt-1 text-[10px] leading-4 text-black/65">
+            TikTok&apos;s in-app browser may block image downloads. Open this page in Chrome, Safari, or your default browser.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <a className="rounded-[0.7rem] bg-black px-3 py-2 text-[10px] font-black text-white" href={getExternalBrowserUrl()} target="_blank" rel="noopener noreferrer">
+              Open Browser
+            </a>
+            <button className="rounded-[0.7rem] bg-black/10 px-3 py-2 text-[10px] font-black" onClick={copyCurrentLink} type="button">
+              Copy Link
+            </button>
+          </div>
+        </div>
+      )}
 
       <header ref={headerRef} className="sticky top-3 z-40 mb-10 flex w-full items-center justify-between gap-2 rounded-[0.8rem] bg-white/90 px-3 py-2 text-black shadow-xl shadow-black/15 ring-1 ring-black/5 backdrop-blur-md sm:top-4 sm:rounded-[1rem] sm:px-4 sm:py-2.5 lg:top-5 lg:rounded-[1.2rem]">
         <button onClick={openProfile} type="button" className={`min-w-0 items-center gap-3 text-left ${isSearchOpen || searchQuery ? "hidden sm:flex" : "flex"}`}>
@@ -642,6 +670,22 @@ export default function WallpaperExplorer({ filters, wallpapers }) {
       {selectedWallpaper && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-white p-1 sm:p-1.5 lg:p-2">
           <div className="min-h-[calc(100vh-0.5rem)] rounded-[1rem] bg-black p-4 text-white shadow-2xl shadow-black/20 sm:min-h-[calc(100vh-0.75rem)] sm:rounded-[1.25rem] sm:p-6 lg:min-h-[calc(100vh-1rem)] lg:rounded-[1.5rem] lg:p-8">
+            {isTikTokBrowser && (
+              <div className="mb-4 rounded-[1rem] border border-yellow-300/25 bg-yellow-400 p-4 text-black">
+                <p className="text-xs font-black">TikTok browser detected</p>
+                <p className="mt-1 text-[10px] leading-5 text-black/65">
+                  Downloads can fail inside TikTok. Open this page in Chrome, Safari, or your default browser before downloading.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <a className="rounded-[0.7rem] bg-black px-3 py-2 text-[10px] font-black text-white" href={getExternalBrowserUrl()} target="_blank" rel="noopener noreferrer">
+                    Open Browser
+                  </a>
+                  <button className="rounded-[0.7rem] bg-black/10 px-3 py-2 text-[10px] font-black" onClick={copyCurrentLink} type="button">
+                    Copy Link
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-[10px] font-black text-emerald-400">
